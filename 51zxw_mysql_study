@@ -1,0 +1,943 @@
+show variables;
+alter database huawei character set latin7;
+use huawei;
+show variables like 'character%';
+
+select version();
+select database();
+select user();
+select now();
+
+create database  if not exists huawei1 character set utf8;
+alter database huawei1 character set latin1;
+show variables like 'character%';
+use huawei1;
+drop database if exists huawei1;
+/*2.1  2019-8-30
+
+第二章
+整形数据类型
+tinyint  -128~127  占一个字节，其他类推
+smallint    
+int
+bigint
+
+浮点数和整点数据类型
+float[(m,d)]   4字节
+double[(m,d)]   8个字节
+
+decimal[(m,d)]    精确值
+2.2
+日期时间型和字符型
+YEAR 一个字节 1901 2155
+time 3个字节  时分秒-838：59：59~838：59：59
+date 4个字节  1000-01-01~9999-12-31
+datetime 8个字节 
+timestamp 4个字节
+
+字符串类型
+char(M) M在0~255个字节
+varchar 变长类型,指定最大的长度。
+tinytext   0~255
+text
+mediumtext
+longtext
+enum
+set
+
+第三章  数据库表结构的操作
+3.1创建和查看数据库表
+行为记录，行为字段
+create table  表名
+(
+列名 数据类型
+)
+3.2修改数据库表
+3.3删除数据库表
+
+
+*/
+
+/*3.1创建和查看数据库表*/
+
+drop database if exists book;
+create database book;  /*编码不对，导致enum的枚举类型不正常*/
+alter database book character set utf8;
+use book;
+create table reader(
+card_id char(18),
+name varchar(10),
+sex enum('男','女'),
+age tinyint,
+tel char(11),
+balance decimal(7,3)
+);
+show tables from book;/*显示数据库book当中的表。*/
+show columns from reader ;/*显示表中的列*/
+show create table reader;
+desc reader;
+
+/*3.2添加列，修改列，删除列的操作*/
+
+alter table reader add email varchar(30);/*添加*/
+desc reader;
+alter table reader add email1 varchar(30) after tel;
+
+alter table reader change email1 email_bak varchar(30);/*修改*/
+alter table reader modify email_bak varchar(25);
+alter table reader modify balance decimal(7,3) after email;
+
+alter table reader drop email_bak;/*删除列*/
+alter table reader rename to readerinfo;/*修改表名称*/
+desc readerinfo;
+show tables;
+alter table readerinfo rename to reader;
+show tables;
+
+/*3.3删除数据库表*/
+
+#drop table t1,t2,t3,t5; 不加IF EXISTS就要报错
+drop table if exists t1,t2,t3,t4,t5,t6,t7;
+
+create table t1(
+card_id char(18),
+name varchar(10),
+sex enum('男','女'),
+age tinyint,
+tel char(11),
+balance decimal(7,3)
+);
+create table t2(
+card_id char(18),
+name varchar(10),
+sex enum('男','女'),
+age tinyint,
+tel char(11),
+balance decimal(7,3)
+);
+create table t3(
+card_id char(18),
+name varchar(10),
+sex enum('男','女'),
+age tinyint,
+tel char(11),
+balance decimal(7,3)
+);
+create table t4(
+card_id char(18),
+name varchar(10),
+sex enum('男','女'),
+age tinyint,
+tel char(11),
+balance decimal(7,3)
+);
+
+show plugins;
+/*partition by range(字段) 用于对数据进行分区存储利于查询的速度更快。*/
+use book;
+/*创建表字段写完后未结束使用partition by对创建字段进行分区,values less than 后面的值要依次变大*/
+drop table if exists bookinfo00;
+create table bookinfo00(
+	book_id int,    
+    book_name varchar(20)
+)
+partition by range(book_id)(
+	partition p1 values less than(20109999),
+	partition p2 values less than(20159999),
+	partition p3 values less than MAXVALUE
+);
+
+insert into bookinfo00 value(20100005,'t1');
+insert into bookinfo00 value(20140015,'t2');
+insert into bookinfo00 value(20140115,'t5');
+insert into bookinfo00 value(20170001,'t3');
+
+select * from bookinfo00;
+select * from bookinfo00 partition(p1);
+select * from bookinfo00 partition(p2);
+select * from bookinfo00 partition(p3);
+
+
+drop table if exists  t1;
+   create table t1(
+   id int,
+   year_col int
+   )
+
+   #创建带分区的表
+   PARTITION BY RANGE(year_col)(
+   PARTITION p0 VALUES LESS THAN(1991),
+   PARTITION p1 VALUES LESS THAN(2000),
+   PARTITION p2 VALUES LESS THAN(2010)
+   );
+show table status;
+show create table bookinfo;
+
+
+#4 约束
+#4.1 约束类型：关键字约束，非空约束 主键约束 唯一约束 默认约束 外键约束
+#图书信息表,图书编号book_id，设计为主键约束
+	#类别编号，设计成外键关联图书类别表
+	#书名book_name  不能重复，唯一约束和非空
+	#作者author 非空约束
+	#价格price  出版社 出版时间  库存 非空
+
+#图书类别表  类别编号   类别名称  父类别 
+
+#读者信息表  
+#身份证号    姓名   性别   年龄  联系电话  余额不能低于100
+
+#借阅信息表
+#图书编号 身份证号码 借出日期 归还日期  是否归还
+#将图书编号和身份证号码共同约束，主键 
+
+#4.2非空约束   空值null   禁止为空not null 创建表的时候，直接在数据类型之后加上not null
+#修改表指定列添加非空约束
+use book;
+alter table bookinfo modify book_name varchar(20) not null;
+#删除表指定列非空约束
+alter table bookinfo modify book_name varchar(20); #或者结束加上null
+show columns from bookinfo;
+#4.3主键约束 ：主键列的数据唯一，并且不允许为空,一张表只有一个主键约束
+#单字段主键 列定义的后面指定主键
+#两种指定主键的方式
+use book;
+drop table if exists bookinfo;
+create table bookinfo(
+book_id int primary key,
+book_name varchar(20) not null
+);
+show columns from bookinfo;
+
+use book;
+drop table if exists bookinfo;
+create table bookinfo(
+book_id int,
+book_name varchar(20) not null,
+constraint pk_id primary key(book_id)
+);
+desc bookinfo;
+#复合主键 primary key(字段1，字段2,...字段n)
+#修改主键
+alter table bookinfo modify book_id int primary key;
+desc bookinfo;
+alter table bookinfo add primary key(book_id);
+alter table bookinfo add constraint pk_id primary key(book_id);
+#删除主键
+alter table bookinfo modify book_id int;  #这样不行，因为可能将非空修改为了允许空，正确如下:
+alter table bookinfo drop primary key;#因为一张表只有一个主键，即删除表的主键即可 
+desc bookinfo;
+#4.4 唯一约束 要求该列唯一，允许为空，确保一列或者几列不出现重复值  unique
+#创建表时加在数据类型后
+#修改 
+alter table bookinfo modify book_name int unique;
+desc bookinfo;
+alter table bookinfo add unique(book_name);
+alter table bookinfo add constraint unique(book_name);
+#删除约束
+alter table bookinfo drop key book_name; #此处book_name_2非字段名,而是uk_bname，通过show create table ？查询unique对应的名称
+
+use book;
+drop table if exists bookinfo;
+create table bookinfo(
+book_id int,
+book_name varchar(20) not null unique,
+constraint pk_id primary key(book_id)
+);
+show create table bookinfo;
+desc bookinfo;
+#4.5默认约束，就是给字段中默认值的操作 在创建表时，字段后面用default加默认值
+use book;
+drop table if exists bookinfo;
+create table bookinfo(
+book_id int,
+book_name varchar(20) not null unique,
+press varchar(10) not null default '机械工业出版社',
+constraint pk_id primary key(book_id)
+);
+desc bookinfo;
+#修改默认值   alter针对表和列，modify针对具体的字段名 
+alter table bookinfo modify press varchar(10) default '深圳社';
+desc bookinfo;
+alter table bookinfo alter column press set default  '深圳社';
+desc bookinfo;
+#删除默认约束
+alter table bookinfo modify press varchar(10);  #同样删除了非空约束 所以加上not null
+desc bookinfo;
+alter table bookinfo alter column press drop default;   #只删除default
+desc bookinfo;
+
+#4.6外键 FK，保持数据的一致性和完整性，外键可以为空值，若不为空，必须和另外一个表的PK是对应的。
+#建立外键后，不允许删除在另一个表中有关联关系的行。
+#两个有关联关系的表中，有主键的那个表为父表，或者主表，有PK的那个表为子表或者从表
+#创建的顺序：先创表主表，再创建从表，即先有父表，再有子表，容易理解。 
+#外键必须和父表的主键进行关联，并且数据类型必须匹配。 
+drop table if exists bookcategory;
+create table bookcategory(
+category_id int primary key,
+category varchar(20),
+parent_id int
+);
+drop table if exists bookinfo;
+create table bookinfo(
+book_id int primary key,
+book_category_id int,
+constraint fk_cid foreign key(book_category_id) references bookcategory(category_id) #从表外键   关联  主表 主键
+);
+#
+
+desc bookinfo;
+desc bookcategory;
+#删除外键
+show create table bookinfo;
+alter table bookinfo drop foreign key bookinfo_ibfk_1;
+#修改外键fk
+alter table bookinfo add constraint fk_cid foreign key(book_category_id) references bookcategory(category_id);
+#如果不指定fk_cid(constraint fk_cid不写 )，则由字段名衍生一个名字，但删除的时候，需要用show create table 表名来查看外键名，不然就会报错.
+
+#4.7创建图书管理系统的4张表单，按建库，建表，建字段，建约束。有约束(外键)先建主表再建子表,指定几个约束.
+#主键 外键 唯一 非空 默认
+use book;
+drop table if exists bookinfo;      #删除时，先删子表(有外键的表)，再删主表.建的时候先建主表，再建子表
+drop table if exists bookcategory,readerinfo,borrowinfo;
+
+
+create table if not exists bookcategory(
+category_id int primary key,
+category varchar(20) not null unique,
+persent_id int not null
+);
+alter table bookcategory change persent_id parent_id int not null;
+
+
+use book;
+drop table if exists bookinfo;
+
+create table if not exists bookinfo(
+book_id int primary key,
+book_category_id int not null,
+book_name varchar(20) not null unique,
+author varchar(10) not null,
+price float(5,3) not null,
+press varchar(20) not null default '机械工业出版社',
+pubdate date not null,
+store int not null,
+constraint fk_bcid foreign key(book_category_id) references bookcategory(category_id) 
+#字段book_category_id与主表bookcategory主键category_id进行约束。
+);
+show create table bookinfo;
+
+
+
+
+create table if not exists readerinfo(
+card_id int(18) primary key,  #类型定义错误
+name varchar(20) not null,
+sex enum('男','女','保密') not null default '保密',
+age tinyint,
+balance decimal(5,3)
+);
+alter table readerinfo add tel char(11) after age;#添加字段，在age前
+alter table readerinfo modify age tinyint not null default 20;#修改age的默认值
+alter table readerinfo modify card_id varchar(18); #修改定义类型
+alter table readerinfo modify balance decimal(5,2) default 200.00;
+desc readerinfo;
+
+
+create table if not exists borrowinfo(
+book_id int,
+card_id int(18),
+borrow_date date not null,
+return_date date not null,
+status enum('是','否'),
+constraint pk_cid primary key(book_id,card_id)
+);
+#6.1数据表的数据插入操作
+
+#单表插入单条记录,所有列
+insert into bookcategory(category_id,category,parent_id) values(1,'计算机',0);
+select * from bookcategory;
+		#可以省略列名，但必须指定所有列的值并与字段顺序对应,不然不匹配
+insert into bookcategory values(2,'医学',0); 
+select * from bookcategory;
+#指定列插入数据 ,其他的值按默认操作
+insert into readerinfo(card_id,name,tel) values('210210199901011111','张飞','15013530689');
+select * from readerinfo;
+
+#插入多条数据，只将值做为值列表分别插入
+insert into bookcategory values(3,'编程语言',1),(4,'数据库',1),(5,'儿科学',2);
+select * from bookcategory;
+#将查询结果插入到数据表当中
+create table if not exists bookcategorytest(
+category_id int primary key,
+category varchar(20) not null unique,
+parent_id int not null
+);
+insert into bookcategorytest values
+(4,'医学',1),
+(5,'网页设计',1),
+(6,'临床医学',2),
+(7,'文学',1),
+(8,'地理',1),
+(9,'历史',2);
+select * from bookcategorytest;
+#-------------------
+insert into bookcategory select * from bookcategorytest where category_id>5;
+select * from bookcategory;
+
+
+insert into bookinfo values
+('20150201',3,'JAVA编程思想','（美）埃克尔',79.8,'机械工业出版社','2007-9-2',8),
+('20150202',2,'PHP+MYSQL开发','好佳',89,'人民邮电出版社','2008-09-15',5),
+('20150203',4,'python开发','张好三',18,'工业出版社','2010-07-10',5),
+('20150204',6,'设计模式','李一四',32,'人民邮电出版社','2014-2-01',5),
+('20150205',5,'数据库实现','李明',15,'机械工业出版社','2013-09-06',5);
+select * from bookinfo;
+#6.2设置编号自动增长  auto_increment的作用
+
+drop table if exists bookcategory_tmp;
+
+create table bookcategory_tmp(
+	category_id int primary key auto_increment,
+    category varchar(20) not null unique,
+    parent_id int not null
+)auto_increment=1;  #不指定默认为1
+
+insert into bookcategory_tmp(category,parent_id) values('计算机科学',0),('计算机数据结构',1);
+select * from bookcategory_tmp;
+
+#6.2对已存在数据表中的字段修改为自增编号列操作
+#先删除有外键字段的关联，再进行自增编号的操作 
+alter table bookinfo drop foreign key fk_bcid;
+
+alter table bookcategory modify category_id auto_increment;  #此处报错，加字段数据类型
+alter table bookcategory modify category_id int auto_increment; 
+#再恢复两表之间的外键关联
+alter table bookinfo add constraint fk_bcid foreign key(book_category_id) references bookcategory(category_id);
+#修改自增编号起始值
+alter table bookcategory auto_increment=5;
+#删除自增列的自动编号
+alter table bookcategory modify category_id int;
+show create table bookcategory;
+#6.4
+select * from bookcategory;
+update  bookcategory set category ='huawei' where category_id =1;#修改单个列
+update  bookcategory set category ='huawei',parent_id=5 where category_id =1;#修改多个列
+select * from bookcategory where category_id =1;
+
+#6.5删除单表记录 
+set sql_safe_updates=0;
+select * from readerinfo;
+insert into readerinfo(card_id,name,tel) values
+('210210199901012222','华维','15013530901'),
+('210210199901013333','华维','15013530901'),
+('210210199901014444','华维','15013530901'),
+('210210199901015555','华维','15013530901');
+
+update readerinfo set name='李四' where card_id='210210199901012222';
+update readerinfo set name='王五' where card_id='210210199901013333';
+
+update readerinfo set tel='15013530922' where card_id='210210199901012222';
+update readerinfo set tel='15013530933' where name='王五';
+
+delete from readerinfo;  #删除表中的所有的数据 ,不加条件 
+delete from readerinfo where card_id='210210199901014444';   
+select * from readerinfo;
+
+#删除所有的记录 有一个速度较快的命令 
+truncate table readerinfo;
+#外键被引用主表字段，删除外键表的数据，需先删除主表当中相关联的记录后才能删除子表中的数据 
+
+
+#6.6select  group by ,order by
+select * from readerinfo order by card_id asc limit 2;
+select count(name) from readerinfo group by name order by count(name) desc;
+
+
+use bookinfo;
+select distinct press from bookinfo;
+alter table bookinfo modify store int;
+select * from bookinfo;
+update bookinfo set store=null where book_id= 20150203;
+update bookinfo set store=null where book_id in (20150203,20150204);
+
+select * from bookinfo where store is null;
+
+update bookinfo set store=null where book_id= 20150203;
+update bookinfo set store=20 where book_id in (20150203,20150204);
+
+#7.1 算术运算符 +-*/% ;比较运算符 = > >= < <= != between  and,  (not) in  like ;三个逻辑and or not 
+use book;
+select * from bookinfo;
+select store,store+5,store-2,store*2,store/2,store%3 from bookinfo;
+#案例：查找读者的身份证，姓名,电话和余额小于200的数据
+select * from readerinfo;
+select card_id,name,tel,balance from readerinfo where balance-200<=0;
+
+#1.案例2，查看读者信息表中，余额不等于 200的读者信息
+select * from readerinfo where balance!=200;
+#查看读者信息表，年龄不为空的读者信息 
+select * from readerinfo where age is not null;
+#查看读者信息表，余额在350-550之间的读者信息 
+select * from readerinfo where balance between 350 and 550;
+#查看读者信息表中，获取张飞，华维，王四这几个读者的信息 
+select * from readerinfo where name in ('张飞','华维');
+#查找名字是两个字，姓华的读者信息 
+select * from readerinfo where name like '华_';
+#查找电话号码包括150前缀的读者信息 
+select * from readerinfo where tel like '150%';
+select * from readerinfo where tel like '%0922';#0922结尾的电话号码 
+#逻辑：查询图书中价格大于50，库存小于5的图书信息 
+select * from bookinfo where price>5 and store<10;
+#查询出版社是机械工业出版社，或者价格大于50的图书 
+select * from bookinfo where press='机械工业出版社' or price >50;
+#查询图书信息，书的价格不在50-100之间的图书 
+select * from bookinfo where price not between 50 and 100;
+
+#7.2 数值函数
+select ceil(28.55);#大于它的最小值
+select floor(28.55);#小于它的最大值 
+select round(28.55),round(28.55,1),round(28.55,0),round(28.55,-1); #四舍五入 
+select truncate(28.55,1),truncate(28.55,0),truncate(28.55,-1);# 截取函数
+select price, round(price) from bookinfo;
+#7.3字符函数 
+select concat('hello','world');#字符串连接 字符串可以带入字段 
+select concat_ws('-',book_id,book_name,press,store) from bookinfo;
+select concat_ws(' ','hello','world');#加分隔连接符
+select lower('ABCDEFG'),upper('abcdefgh');#大小写转换 
+select book_name,upper(book_name) from bookinfo;
+select book_name,length(book_name) from bookinfo;#求字符串长度 
+select ltrim('   huawei     '),length(ltrim('   huawei     ')),rtrim('   love  study     '),length(rtrim('   love  study     '));#空格删除,两边的空格trim()
+select substring('abcdefghijk',1,5);#从左截取字符串 
+select substring('abcdefghijk',-3,2);#从右截取字符串
+select left('huawei,hello world',10);#返回最左边开始的10个字符
+select right('huawei,hello world',10);#返回最右边开始的10个字符
+select replace('hello,world','world','huawei');#替换，把world换成huawei;
+select format(129999999,2);#格式化成两位小数的数值;若为0为没有小数部分,以字符返回.注意四舍五入
+#7.4日期时间函数
+select curdate()+0;
+select curdate();#日期
+select current_date();
+select curtime();#时间
+select current_time();
+select now();#日期加时间
+select sysdate();
+#执行日期的加运算 interval ? year month day week hour等时间单位 
+select date_add('2017-01-01',interval 5 month);
+#求两个日期之间的天数datediff()
+select datediff('2019-10-02','2019-01-02');
+#日期进行格式化
+select curdate(), date_format(curdate(),'%Y%m%d');
+#7.5聚合函数
+#count(),汇总 max() min() avg() sum();
+select * from bookinfo;
+use bookinfo;
+select avg(price) from bookinfo;
+select sum(store) from bookinfo;
+select min(price) from bookinfo;
+select max(store) from bookinfo;
+select count(*) from bookinfo;
+select press, book_category_id as '图书类别',count(press) as '出版社数量',sum(store) as '库存总和' from bookinfo group by press;
+
+#7.6信息函数，加密函数
+select version();
+select connection_id();
+select database();
+select schema();
+select user();
+
+select md5('huawei');
+select md5('admin');
+select password('admin');
+
+create table myuser(
+	username varchar(10),
+    password varchar(35)
+);
+insert into myuser values('huawei',md5('huawei'));
+select * from myuser;
+#验证用户名和密码/:用password(）函数对密码进行加密。
+select * from myuser where username='huawei' and password=md5('huawei');
+
+#8.1 子查询 
+select * from bookinfo; #
+select * from readerinfo;
+
+#案例，210210199901015555借了一本20150202的书，更新其balance数据.
+select price from bookinfo where book_id='20150202'; #查找出来得89元
+update readerinfo set balance=balance-89*0.05 where card_id='210210199901015555';
+select * from readerinfo;
+#采用子查询
+#将需要使用到的字段数据通过查询后代入到其他语句当中去实现案例中的要求。 
+#将(sql查询)嵌套在其他sql 查询语句当中的查询为子查询:始终出现在圆括号内。  
+update readerinfo set balance=balance-(select price from bookinfo where book_id='20150202')*0.05
+ where card_id='210210199901015555';
+
+ select * from readerinfo;
+ 
+
+#8.2使用比较运算符的子查询
+#始终出现在圆括号内
+use book;
+
+#查找书名包含python的借阅信息，即把此书名查找的book_id在借阅信息表中进行查询.
+ select * from borrowinfo;
+select * from borrowinfo where book_id =(select book_id from bookinfo where book_name like 'python%');
+#查找图书信息表，找出图书价格小于图书平均价格的所有图书 
+select avg(price) from bookinfo;
+select * from bookinfo where price < (select round(avg(price),2) from bookinfo);
+#查找图书信息表，显示不是数据库的所有图书信息
+select category_id from bookcategory where category like '数据库%';
+select * from bookinfo where book_category_id != 
+(select category_id from bookcategory where category like '数据库%');
+select * from bookcategory;
+#8.3使用[NOT]IN或EXISTS的子查询
+
+#8.4 插入记录时使用子查询
+#9多表链接查询
+#通过查看图书信息表和图书类别表，来获取图书编号 图书名称 类别编号，图书类别 
+select * from bookcategory;
+select * from bookinfo;
+use book;
+select book_id,book_name,category_id,category from bookinfo inner join bookcategory on bookinfo.book_category_id = bookcategory.category_id;
+
+#查询借阅信息表，图书信息表，读者信息表，找出未归还的图书信息及借阅人信息 
+select borrowinfo.book_id,book_name,borrowinfo.card_id,name,tel,return_date,status from borrowinfo
+inner join bookinfo on borrowinfo.book_id=bookinfo.book_id
+inner join readerinfo on borrowinfo.card_id=readerinfo.card_id
+where borrowinfo.status='否';
+
+select t1.book_id,book_name,t1.card_id,name,tel,return_date,status from borrowinfo t1
+join bookinfo t2 on t1.book_id=t2.book_id
+join readerinfo t3 on t1.card_id=t3.card_id
+where t1.status='否';
+#9.2外链接查询 左边全查找(即左边类别全部显示,图书信息匹配类别，可查询出有类别没有添加图书的类别名称 )
+select book_id,book_name,category from bookcategory
+left join bookinfo on bookcategory.category_id=bookinfo.book_category_id where bookcategory.parent_id!=0;
+
+select book_id,book_name,category from bookinfo
+right join  bookcategory on bookcategory.category_id=bookinfo.book_category_id where bookcategory.parent_id!=0;
+
+#右边的图书信息全部查找，左边类别按要求匹配,即有图书，都有类别，查询不出来所要求的没加图书的类别 
+select book_id,book_name,category from  bookcategory
+right join bookinfo on bookcategory.category_id=bookinfo.book_category_id where bookcategory.parent_id!=0;
+#9.3 同一张表在逻辑上分作两张表进行子分类与父分类的类别名称查询，使用别名和链接查询 
+
+#9.4多表更新   
+
+set sql_safe_updates=0;
+update readerinfo set balance=300 where card_id='210210199901013333';
+#有同样字段的必须指定表名，不然出现1052:in field list is ambiguous
+update readerfee t1 
+join readerinfo t2 on t1.card_id=t2.card_id 
+join borrowinfo t3 on t1.book_id = t3.book_id
+set 
+actual_return_date=sysdate(),
+t1.book_fee=datediff(sysdate(),
+t1.return_date)*0.01,#更新罚款表 
+balance=balance-t1.book_fee,   #更新读者信息表的余额信息 
+status='是'					#更新借阅信息表的借阅状态 
+where t1.book_id=20150202 and t1.card_id='210210199901013333';
+select * from readerfee;
+select * from readerinfo;
+select * from borrowinfo;
+#9.5多表删除 :核心主要通过外键与主键的值的关系，再进行读取后，进行更新和删除等操作 
+use book;
+create table bookcategory_bak
+as 
+select * from bookcategory;
+
+create table bookinfo_bak
+as 
+select * from bookinfo;
+
+create table huawei like sxcj;
+#复制表的命令，两个方式.as  like
+#--------先找出类别表中多于的类别-----
+select book_id,book_name,category from bookcategory_bak t1 
+left join bookinfo_bak t2 
+on t1.category_id=t2.book_category_id
+where parent_id<>0 and book_id is null;
+
+#-----再执行删除book_id空的值，即类别表中多的类别被删除 
+delete t1 from bookcategory_bak t1
+left join bookinfo_bak t2 
+on t1.category_id=t2.book_category_id
+where parent_id<>0 and book_id is null;
+select * from bookcategory_bak;
+#如果是2张表，即用内连接进行查询出同时满足条件的记录，再进行条件判断后 delete t1,t2同时删除。 
+
+#10自定义函数
+#
+use book;
+select date_format(pubdate,'%Y-%M') from bookinfo;
+#将此功能封装成函数，可以直接进行调用 
+drop function if exists ym_date;
+delimiter //
+create function ym_date(mydate date)
+returns varchar(15)
+begin
+return date_format(mydate,'%Y-%M');
+end //   
+#重新恢复以;解释结尾否则下列语句会报错
+delimiter ;  
+select ym_date(pubdate) from bookinfo;
+select ym_date(borrow_date) from borrowinfo;
+
+use book;
+drop function if exists newdate;
+create function newdate()
+returns varchar(20)
+return date_format(curdate(),'%Y年%m月%d日');
+select newdate();
+
+
+drop function if exists show_name_store;
+create function show_name_store(bid int)
+returns varchar(50)
+return(select concat_ws('----',book_name,store) from bookinfo where book_id=bid);
+select show_name_store(20150202);
+#------
+
+drop function if exists show_name_store_01;
+delimiter //
+create function show_name_store_01(bid int)
+returns varchar(50)
+begin
+declare result varchar(50);
+select concat_ws('**********',book_name,store) into result from bookinfo where book_id=bid;
+return result;
+end //
+delimiter ;
+select show_name_store_01(20150202);
+select show_name_store_01(20150201);
+
+delimiter //
+create function show_level(cid char(18))
+returns varchar(50)
+begin
+declare lev varchar(50);
+declare money decimal(7,3);
+select balance into money from readerinfo where card_id=cid;
+if money>=500 then
+	set lev='金牌会员';
+elseif money >=300 then
+	set lev='高级会员';
+elseif money>=200 then
+	set lev='普通会员';
+elseif money<200 then
+	set lev='非会员，不能借书';
+end if;
+return lev;
+end//
+delimiter ;
+select name,show_level(card_id),balance from readerinfo;
+
+
+use book;
+drop function if exists show_level02;
+delimiter //
+create function show_level02(cid char(18))
+returns varchar(50)
+begin
+declare lev varchar(50);
+declare money decimal(7,3);
+declare num int;
+select balance into money from readerinfo where card_id=cid;
+set num=truncate(money/100,0);
+case num
+when 0 then set lev='非会员，不能借书';
+when 1 then set lev='非会员，不能借书';
+when 2 then set lev='普通会员';
+when 3 then set lev='高级会员';
+else set lev='金牌会员';
+end case;
+return lev;
+end //
+delimiter ;
+select name,show_level02(card_id),balance from readerinfo;
+
+#11.存储过程介绍
+drop procedure if exists selectproc;
+delimiter //
+create procedure selectproc(bid int)
+begin
+select * from bookinfo t1 where book_id=bid;
+end //
+delimiter ;
+#调用
+call selectproc(20150201);
+
+drop procedure if exists delreader;
+delimiter //
+create procedure delreader(in cid char(18),out num int)
+begin
+delete from readerinfo where card_id=cid;
+select count(card_id) into num from readerinfo;
+end//
+delimiter ;
+
+select * from readerinfo;
+
+call delreader('210210199901015555',@num);
+select @num;
+
+drop procedure if exists swapnum;
+delimiter //
+create procedure swapnum(inout num1 int ,inout num2 int)
+begin
+#对变量进行初始化，否则报错
+declare t int default 0; 
+set t=num1;
+set num1=num2;
+set num2=t;
+end//
+delimiter ;
+set @n1=10,@n2=200;
+call swapnum(@n1,@n2);
+select @n1,@n2;
+#12事务 :由多条SQL语句组成的整体，要么都执行，要么都不执行，其中如果某一条执行成功，而另外一条不成功，将导致数据不一致
+#begin commit   begin rollback begin savepoint
+
+use book;
+drop table if exists mytest;
+create table mytest(
+	id int primary key,
+    name varchar(15)
+);
+begin;
+insert into mytest values(1,'test01');
+insert into mytest values(2,'test02');
+commit;
+select * from mytest;
+
+begin;
+insert into mytest values(3,'test03');
+insert into mytest values(4,'test04');
+insert into mytest values(5,'test05');
+rollback;
+begin;
+insert into mytest values(6,'test06');
+savepoint t6;
+insert into mytest values(7,'test07');
+savepoint t7;
+insert into mytest values(8,'test08');
+savepoint t8;
+rollback to t7;
+commit;
+
+set autocommit=0;
+insert into mytest values(9,'test09');
+commit;
+
+
+drop procedure if exists borrowproc;
+delimiter //
+create procedure borrowproc(cid char(18),bid int)
+begin
+declare store_num int;
+declare money float(7,3);
+select store into store_num from bookinfo where book_id=bid;
+select balance into money from readerinfo where card_id=cid;
+set autocommit=0;
+insert into borrowinfo values(bid,cid,curdate(),date_add(curdate(),interval 1 month),'否');
+update bookinfo set store=store-1 where book_id=bid;
+update readerinfo set balance=balance-(select price from bookinfo where book_id=bid)*0.05 where card_id=cid;
+if store_num=0 or money<200 then
+	rollback;
+else 
+	commit;
+end if;
+end //
+delimiter ;
+
+select * from bookinfo;
+select * from borrowinfo;
+select * from readerinfo;
+
+call borrowproc('210210199901013333',20150206);
+call borrowproc('210210199901012222',20150202);
+
+show engines;
+#设置存储引擎1
+#设置服务器的存储引擎 
+#配置文件my.ini中[mysqld]下面设置
+#default_storage_engine=InnoDB
+#重启mysql
+
+#客户端设置存储引擎 
+#set default_storage_engine=InnoDB;
+
+#创建表的时候单独设置存储引擎
+#加在括号之后，分号之前   
+#alter table table_name engine =enginename;
+
+#14mysql的管理和维护 
+#14.1用户管理 :权限表；user,db,host,tables priv,columns_priv,procs_priv.
+#创新普通用户 
+
+create user 'huawei'@'localhost' identified by 'huawei';
+
+select user,host from mysql.user;
+
+create user 'rose'@'localhost' identified by password 'root'; #hash
+
+grant privileges on db.table
+to 'huawei'@'localhost' identified by 'root';
+
+grant select,update on *.* 
+to 'huawei'@'localhost' identified by 'root';
+#删除用户：
+drop USER 'huawei'@'localhost';
+create user 'huawei'@'localhost' identified by 'huawei';
+set sql_safe_updates=0;
+delete from mysql.user where user='huawei';
+select user,host from mysql.user;
+#授权，grant 取消 revoke  查看权限 
+show grants for 'huawei'@'localhost';
+revoke insert on book.* from 'huawei'@'localhost';
+flush privileges;
+
+#mysql的日志管理
+#分类 
+show variables like 'log_error';
+
+flush logs;
+
+#数据库备份与恢复 
+
+#备份：在CMD命令行模式下 备份单库，备份库和表，备份多库 备份所有库
+#mysqldump -uroot -p -hip主机 数据库名 > c:\??
+#c:\Program Files\MySQL\MySQL Server 5.5\bin>mysqldump -uroot -p -h94.191.35.26 book bookinfo>c:\book.bookinfo.sql
+#c:\Program Files\MySQL\MySQL Server 5.5\bin>mysqldump -uroot -p -h94.191.35.26 --databases book mytest>c:\database_book_mytest.sql
+#c:\Program Files\MySQL\MySQL Server 5.5\bin>mysqldump -uroot -p -h94.191.35.26 --all-databases>c:\database_all.sql
+#恢复数据库，数据表的命令 
+#c:\Program Files\MySQL\MySQL Server 5.5\bin>mysql -h94.191.35.26 -uroot -p book<c:\book.bookinfo.sql
+#如果已经登录数据库服务器,直接在命令行中
+#mysql>use book;
+#mysql>source c:\book.bookinfo.sql;
+
+数据表的导出导入
+# Secure File Priv.
+secure-file-priv="C:/ProgramData/MySQL/MySQL Server 5.5/Uploads"
+secure-file-priv=NULL 限制导出导入
+secure-file-priv=""     目录不受限制
+
+导出
+select ...into outfile 
+mysqldump -T PATH -uroot -p dbname[tables][options]
+mysql -uroot -p --execute="select语句"dbname >filename.txt
+
+导入
+load data infile "C:/ProgramData/MySQL/MySQL Server 5.5/Uploads/bookinfo.txt" into table book.bookinfo;
+
+c:\Program Files\MySQL\MySQL Server 5.5\bin>mysqlimport -uroot -p -h94.191.35.26
+ book  "C:/ProgramData/MySQL/MySQL Server 5.5/Uploads/bookinfo.out.txt"
+Enter password: ****
+book.bookinfo: Records: 6  Deleted: 0  Skipped: 0  Warnings: 0
+
+
+#mysql> select * from book.bookinfo into outfile 'C:/ProgramData/MySQL/MySQL Server 5.5/Uploads/bookinfo.csv'
+    -> fields terminated by '\t'
+    -> lines terminated by '\r\n';
+Query OK, 6 rows affected (0.06 sec)
