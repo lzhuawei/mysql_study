@@ -941,3 +941,8 @@ book.bookinfo: Records: 6  Deleted: 0  Skipped: 0  Warnings: 0
     -> fields terminated by '\t'
     -> lines terminated by '\r\n';
 Query OK, 6 rows affected (0.06 sec)
+
+
+知识点补充：
+1.选出数据库stock中，stock_basic表数据，现在日期相差多少天之内的记录：注意日期格式化，日期求差值函数的运用
+select * from stock_basic where datediff(current_date(),date_format(list_date,'%Y-%m-%d'))<=90;
